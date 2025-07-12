@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 import streamlit as st
 import pyrebase
 
@@ -72,15 +73,27 @@ def login_form():
             auth = _get_auth()
             if not auth:
                 return
-            try:
-                user = auth.sign_in_with_email_and_password(email, password)
-                st.session_state.logged_in = True
-                st.session_state.login_time = datetime.now()
-                st.session_state.user = user
-                st.success("Logged in successfully")
-                st.experimental_rerun()
-            except Exception as e:
-                st.error(f"Login failed: {e}")
+
+            def do_login():
+                return auth.sign_in_with_email_and_password(email, password)
+
+            with ThreadPoolExecutor(max_workers=1) as ex:
+                future = ex.submit(do_login)
+                try:
+                    user = future.result(timeout=30)
+                    st.session_state.logged_in = True
+                    st.session_state.login_time = datetime.now()
+                    st.session_state.user = user
+                    st.success("Logged in successfully")
+                    st.experimental_rerun()
+                except FuturesTimeoutError:
+                    st.error("Login request timed out. Please try again.")
+                except Exception as e:
+                    msg = str(e).upper()
+                    if "INVALID_PASSWORD" in msg or "EMAIL_NOT_FOUND" in msg:
+                        st.error("Invalid email or password.")
+                    else:
+                        st.error(f"Login failed: {e}")
         else:
             st.error("Please provide both email and password")
 
