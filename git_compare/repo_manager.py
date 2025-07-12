@@ -2,12 +2,24 @@ import os
 import shutil
 import git
 import re
+import tempfile
 import streamlit as st
 
 def remove_dir(path: str):
     """ลบโฟลเดอร์ (recursive)"""
     if os.path.exists(path):
         shutil.rmtree(path)
+
+@st.cache_resource
+def clone_repo_to_cache(repo_url: str) -> str:
+    """Clone repository to a temporary directory cached by Streamlit."""
+    tmp_dir = tempfile.mkdtemp()
+    git.Repo.clone_from(repo_url, tmp_dir)
+    return tmp_dir
+
+def clear_repo_cache():
+    """Clear cached repositories."""
+    st.cache_resource.clear()
 
 @st.cache_data
 def clone_repo_if_not_exists(repo_url: str, repo_dir: str):
