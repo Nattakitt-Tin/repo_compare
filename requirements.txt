@@ -1,2 +1,4 @@
 GitPython
 streamlit
+pyrebase4
+pycryptodome
