@@ -16,7 +16,28 @@ def _init_firebase():
     try:
         with open(cfg_path, "r") as f:
             config = json.load(f)
+
+        required = [
+            "apiKey",
+            "authDomain",
+            "databaseURL",
+            "projectId",
+            "storageBucket",
+            "messagingSenderId",
+            "appId",
+        ]
+        missing = [k for k in required if k not in config]
+        if missing:
+            raise KeyError(
+                "Missing keys in firebase_config.json: " + ", ".join(missing)
+            )
+
         firebase = pyrebase.initialize_app(config)
+    except FileNotFoundError:
+        st.error(
+            f"Firebase config not found at '{cfg_path}'. Create it from firebase_config_template.json"
+        )
+        firebase = None
     except Exception as e:
         st.error(f"Failed to initialize Firebase: {e}")
         firebase = None
