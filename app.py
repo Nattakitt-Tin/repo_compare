@@ -23,29 +23,38 @@ st.title("🔍 Git Repository Compare - Regex File Mapping, Dark Theme")
 if "old_repo_url" not in st.session_state:
     st.session_state.old_repo_url = ""
 
-repo_url = st.text_input("📂 Git Repository URL:", "https://github.com/ollama/ollama")
-repo_dir = "./git_repo"
+repo_url = st.text_input("📂 Git Repository URL:", "")
+if "repo_dir" not in st.session_state:
+    st.session_state.repo_dir = ""
 
 # ถ้า URL เปลี่ยน => ลบโฟลเดอร์ + clear cache
 if repo_url != st.session_state.old_repo_url and st.session_state.old_repo_url != "":
-    st.warning(f"Repo URL changed from {st.session_state.old_repo_url} to {repo_url}. Removing old folder & clearing cache.")
-    repo_manager.remove_dir(repo_dir)
+    st.warning(
+        f"Repo URL changed from {st.session_state.old_repo_url} to {repo_url}. Removing old folder & clearing cache."
+    )
+    repo_manager.remove_dir(st.session_state.repo_dir)
+    repo_manager.clear_repo_cache()
+    st.session_state.repo_dir = ""
     st.cache_data.clear()
 
 st.session_state.old_repo_url = repo_url
 
 # ===== ปุ่ม Reload Cache ด้วยตัวเอง ===== #
 if st.button("Reload Cache"):
+    repo_manager.clear_repo_cache()
+    repo_manager.remove_dir(st.session_state.repo_dir)
+    st.session_state.repo_dir = ""
     st.cache_data.clear()
     st.success("Cache cleared manually!")
 
 # ===== ปุ่ม Clone ===== #
 if st.button("Clone Repository"):
     with st.spinner("Cloning or Checking..."):
-        repo_manager.clone_repo_if_not_exists(repo_url, repo_dir)
+        st.session_state.repo_dir = repo_manager.clone_repo_to_cache(repo_url)
     st.success("Repository is ready!")
 
 # ===== ถ้ามีโฟลเดอร์ => ดึง Branch/Tag ===== #
+repo_dir = st.session_state.repo_dir
 if os.path.exists(repo_dir):
     branches, tags = repo_manager.get_all_branches_and_tags(repo_dir)
     if not branches and not tags:
